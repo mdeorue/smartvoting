@@ -1,0 +1,76 @@
+from run import db
+from sqlalchemy import extract
+
+class Diputy(db.Model):
+
+    __tablename__ = 'diputies'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    lastname = db.Column(db.String(100), nullable=True)
+    birth_date = db.Column(db.DateTime(), nullable=True)
+    dni = db.Column(db.String(20), nullable=True)
+    sex = db.Colum(db.Integer, nullable=False)
+
+    def __repr__(self):
+        return f'<Diputy {self.name}>'
+
+    @staticmethod
+    def get_by_id(id):
+        return Diputy.query.get(id)
+
+
+class SubPeriodType(db.Model):
+
+    __tablename__ = 'subperiod_types'
+
+    id = db.Column(db.Integer, primary_key=True)
+    description = db.Column(db.String(200), nullable=False)
+
+    def __repr__(self):
+        return f'<SubPeriodType {self.description}>'
+
+class Period(db.Model):
+
+    __tablename__ = 'periods'
+
+    id = db.Column(db.Integer, primary_key=True)
+    description = db.Column(db.String(200), nullable=False)
+    starts_at = db.Column(db.DateTime(), nullable=False)
+    ends_at = db.Column(db.DateTime(), nullable=True)
+    subperiods = db.relationship('SubPeriod', backref='periods', lazy=True)
+
+    def __repr__(self):
+        return f'<Period {self.description}>'
+
+    @hybrid_property
+    def starts_at_year(self):
+        return self.starts_at.year
+
+    @starts_at_year.expression
+    def starts_at_year(cls):
+        return extract('year', cls.starts_at)
+
+    def get_by_year(year):
+        return Period.query.filter(Period.starts_at_year = year).all()
+
+class SubPeriod(db.Model):
+
+    __tablename__ = 'subperiods'
+
+    id = db.Column(db.Integer, primary_key=True)
+    description = db.Column(db.String(200), nullable=False)
+    starts_at = db.Column(db.DateTime(), nullable=False)
+    ends_at = db.Column(db.DateTime(), nullable=True)
+    type_id = db.Column(db.Integer, db.ForeignKey('subperiod_types.id'), nullable=False)
+    period_id = db.Column(db.Integer, db.ForeignKey('periods.id'), nullable=False)
+
+    def __repr__(self):
+        return f'<SubPeriod {self.description}>'
+
+class DiputyPeriod(db.Model):
+
+    __tablename__ = 'diputy_period'
+
+    diputy_id = db.Column(db.Integer, db.ForeignKey('diputies.id'), nullable=False)
+    period_id = db.Column(db.Integer, db.ForeignKey('periods.id'), nullable=False)
